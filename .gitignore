@@ -1,6 +1,11 @@
 # Compiled class file
 *.class
 
+# Maven build output
+target/
+pom.xml.versionsBackup
+.mvn/wrapper/maven-wrapper.jar
+
 # Log file
 *.log
 

@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>4.1.1</version>
+		<relativePath/>
+	</parent>
+
+	<groupId>com.example.security</groupId>
+	<artifactId>springboot-security</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
+	<packaging>jar</packaging>
+
+	<name>springboot-security</name>
+	<description>Shared JWT security library for Spring Boot applications</description>
+
+	<!--
+	  A single module. The package layout still reflects the original layering, because that
+	  boundary is real and costs nothing to keep:
+
+	      com.example.security.core            token issuing, verification, revocation SPI
+	      com.example.security.autoconfigure   auto-configuration, properties, filter chain
+
+	  core has no Spring Boot or servlet dependency, so it stays unit-testable on its own.
+	-->
+
+	<properties>
+		<java.version>21</java.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+	</properties>
+
+	<dependencies>
+		<!--
+		  Declared as regular compile dependencies rather than optional ones.
+
+		  This jar is what a consuming application declares, so the Spring Security modules it
+		  integrates with must arrive with it; making them optional would turn the intended
+		  single-dependency setup into a two-dependency one. Backing off is still handled, by
+		  @ConditionalOnMissingBean on the beans themselves rather than by a missing classpath.
+		-->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security-oauth2-resource-server</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-autoconfigure</artifactId>
+		</dependency>
+
+		<!--
+		  Supplies Jwt, JwtClaimsSet, JwsHeader and the Nimbus encoder/decoder. Also arrives
+		  transitively with the resource-server starter above; declared explicitly because the
+		  token core compiles against it directly and does not need the web stack.
+		-->
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-oauth2-jose</artifactId>
+		</dependency>
+
+		<!-- Compiling against HttpServletRequest/Response; the container supplies them at runtime. -->
+		<dependency>
+			<groupId>jakarta.servlet</groupId>
+			<artifactId>jakarta.servlet-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<!--
+		  Test only. The web and webmvc starters are test scoped so that adding this library to a
+		  non-web application does not drag a servlet container in with it.
+		-->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<!--
+			  spring-boot-autoconfigure-processor writes the condition metadata used to filter
+			  auto-configurations quickly at startup; spring-boot-configuration-processor generates
+			  META-INF/spring-configuration-metadata.json so IDEs complete app.security.* keys.
+			-->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.springframework.boot</groupId>
+							<artifactId>spring-boot-autoconfigure-processor</artifactId>
+						</path>
+						<path>
+							<groupId>org.springframework.boot</groupId>
+							<artifactId>spring-boot-configuration-processor</artifactId>
+						</path>
+					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
+
+			<!--
+			  spring-boot-maven-plugin is deliberately absent. Its repackage goal rewrites the jar
+			  into a BOOT-INF/ layout, which would make this artifact unusable as a dependency, and
+			  it currently fails the build because there is no main class. It belongs here only once
+			  the authentication server's entry point lands, and then as:
+
+			      <configuration><classifier>exec</classifier></configuration>
+
+			  which emits the plain jar consumers depend on plus a separate -exec.jar to run.
+			-->
+		</plugins>
+	</build>
+</project>
